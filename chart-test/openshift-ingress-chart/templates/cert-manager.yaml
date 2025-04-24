@@ -1,0 +1,48 @@
+{{- if .Values.certManager }}
+{{- if .Values.certManager.enabled }}
+{{- range .Values.ingress.hosts }}
+{{- $hostTlsEnabled := false }}
+{{- if hasKey . "tls" }}
+{{- if hasKey .tls "enabled" }}
+{{- $hostTlsEnabled = .tls.enabled }}
+{{- end }}
+{{- end }}
+{{- $tlsEnabled := default $.Values.global.tls.enabled $hostTlsEnabled }}
+{{- if $tlsEnabled }}
+{{- $hostname := .host }}
+{{- $secretName := include "openshift-ingress.tlsSecretName" (dict "host" .host "tls" (default (dict) .tls) "fullName" (include "openshift-ingress.fullname" $) "global" $.Values.global) }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ printf "cert-%s" ($hostname | replace "." "-") | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "openshift-ingress.labels" $ | nindent 4 }}
+spec:
+  secretName: {{ $secretName }}
+  duration: {{ $.Values.certManager.duration | default "2160h" }}
+  renewBefore: {{ $.Values.certManager.renewBefore | default "360h" }}
+  subject:
+    organizations:
+      - {{ $.Values.certManager.organization | default "Example Organization" }}
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+    - server auth
+    - client auth
+  dnsNames:
+    - {{ $hostname }}
+  {{- if $.Values.certManager.includeWildcard }}
+    - "*.{{ $hostname }}"
+  {{- end }}
+  issuerRef:
+    name: {{ $.Values.certManager.issuerName | default "letsencrypt-prod" }}
+    kind: {{ $.Values.certManager.issuerKind | default "ClusterIssuer" }}
+    group: {{ $.Values.certManager.issuerGroup | default "cert-manager.io" }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

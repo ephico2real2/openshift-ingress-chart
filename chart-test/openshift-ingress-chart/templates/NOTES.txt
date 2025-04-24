@@ -1,0 +1,87 @@
+Thank you for installing {{ .Chart.Name }}.
+
+The Ingress configuration has been applied with the following settings:
+
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+1. Host: {{ .host }}
+   {{- if not .paths }}
+   Path: {{ $.Values.global.path | default "/" }}
+   Service: 
+   {{- if .service }}
+   {{- if .service.name }}
+   {{ .service.name }}
+   {{- else }}
+   {{ include "openshift-ingress.fullname" $ }}
+   {{- end }}
+   {{- else }}
+   {{ include "openshift-ingress.fullname" $ }}
+   {{- end }}
+   Port: 
+   {{- if .service }}
+   {{- if .service.port }}
+   {{ .service.port }}
+   {{- else }}
+   {{ $.Values.global.service.port }}
+   {{- end }}
+   {{- else }}
+   {{ $.Values.global.service.port }}
+   {{- end }}
+   {{- else }}
+   {{- range .paths }}
+   Path: {{ .path | default $.Values.global.path | default "/" }}
+   Service: 
+   {{- if .service }}
+   {{- if .service.name }}
+   {{ .service.name }}
+   {{- else }}
+   {{ include "openshift-ingress.fullname" $ }}
+   {{- end }}
+   {{- else if $.service }}
+   {{- if $.service.name }}
+   {{ $.service.name }}
+   {{- else }}
+   {{ include "openshift-ingress.fullname" $ }}
+   {{- end }}
+   {{- else }}
+   {{ include "openshift-ingress.fullname" $ }}
+   {{- end }}
+   Port: 
+   {{- if .service }}
+   {{- if .service.port }}
+   {{ .service.port }}
+   {{- else }}
+   {{ $.Values.global.service.port }}
+   {{- end }}
+   {{- else if $.service }}
+   {{- if $.service.port }}
+   {{ $.service.port }}
+   {{- else }}
+   {{ $.Values.global.service.port }}
+   {{- end }}
+   {{- else }}
+   {{ $.Values.global.service.port }}
+   {{- end }}
+   {{- end }}
+   {{- end }}
+   {{- $hostTlsEnabled := false }}
+   {{- if hasKey . "tls" }}
+   {{- if hasKey .tls "enabled" }}
+   {{- $hostTlsEnabled = .tls.enabled }}
+   {{- end }}
+   {{- end }}
+   {{- $tlsEnabled := default $.Values.global.tls.enabled $hostTlsEnabled }}
+   TLS: {{ $tlsEnabled }}
+   {{- if $tlsEnabled }}
+   TLS Secret: {{ include "openshift-ingress.tlsSecretName" (dict "host" .host "tls" (default (dict) .tls) "fullName" (include "openshift-ingress.fullname" $) "global" $.Values.global) }}
+   {{- end }}
+{{- end }}
+{{- else }}
+Ingress is disabled. To enable it, set ingress.enabled to true in your values file.
+{{- end }}
+
+To verify the Ingress resources:
+  kubectl get ingress -l app.kubernetes.io/instance={{ .Release.Name }}
+
+To check for the generated OpenShift routes:
+  oc get routes -l app.kubernetes.io/instance={{ .Release.Name }}

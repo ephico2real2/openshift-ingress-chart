@@ -1,0 +1,141 @@
+# Global chart settings
+nameOverride: ""
+fullnameOverride: ""
+
+# TLS Certificate Management
+# Option 1: Manually specify certificates
+tls:
+  # If you want to provide certificates directly in the values file
+  certificates:
+    # example-com-tls:
+    #   cert: |
+    #     -----BEGIN CERTIFICATE-----
+    #     [YOUR BASE64 CERTIFICATE DATA HERE]
+    #     -----END CERTIFICATE-----
+    #   key: |
+    #     -----BEGIN PRIVATE KEY-----
+    #     [YOUR BASE64 PRIVATE KEY DATA HERE]
+    #     -----END PRIVATE KEY-----
+
+# Option 2: Use cert-manager integration
+certManager:
+  enabled: false
+  # Which issuer to use - default is letsencrypt-prod ClusterIssuer
+  issuerName: "letsencrypt-prod"
+  issuerKind: "ClusterIssuer"
+  issuerGroup: "cert-manager.io"
+  # Certificate duration and renewal settings
+  duration: "2160h"  # 90 days
+  renewBefore: "360h"  # 15 days
+  # Include wildcard subdomain in the certificate
+  includeWildcard: false
+  # Organization name for the certificate
+  organization: "Example Organization"
+
+# Global ingress configuration
+global:
+  # Base service configuration to be used by default
+  service:
+    port: 3000
+  
+  # Default TLS configuration
+  tls:
+    enabled: true
+    secretNamePrefix: ""  # If specified, secretName will be "<prefix>-<hostname>-tls"
+  
+  # OpenShift ingress class
+  ingressClassName: "openshift-default"
+  
+  # Common annotations for all ingress resources
+  annotations: {}
+  # Example: cert-manager.io/cluster-issuer: letsencrypt-prod
+  
+  # OpenShift specific router annotations (applied to all hosts)
+  openshiftAnnotations:
+    haproxy.router.openshift.io/timeout: 30s
+    router.openshift.io/cookie-same-site: Lax
+  
+  # Common labels for all ingress resources
+  labels:
+    environment: dev
+    app.kubernetes.io/component: ingress
+  
+  # Default path settings
+  path: "/"
+  pathType: "Prefix"
+
+# Ingress host configurations
+# Each host can override global settings
+ingress:
+  enabled: true
+  
+  hosts:
+    # Example of a vanity URL with custom annotations
+    - host: dojo-portal-rnd.ephico2real.net
+      # Override specific global settings
+      annotations:
+        haproxy.router.openshift.io/rate-limit-connections: true
+        haproxy.router.openshift.io/rate-limit-connections.rate-http: '100'
+      
+      # Custom TLS configuration (overrides global)
+      tls:
+        enabled: true
+        secretName: vanity-dojo-portal-tls-secret
+        # Don't specify secretName to use auto-generated name based on global.tls.secretNamePrefix
+      
+      # Service targeting
+      # If not specified, will use release name for service name and global.service.port for port
+      service:
+        name: dojo-portal
+        port: 3000
+      
+      # Path configuration
+      # Each host can have multiple paths, each pointing to a different service
+      paths:
+        # Default path (/) with default service
+        - {}  # Empty config uses global defaults for path and pathType
+        
+        # Additional path example (uncomment to use)
+        # - path: /api
+        #   pathType: Prefix
+        #   service:
+        #     name: api-service
+        #     port: 8080
+
+    # Example of a wildcard subdomain with timeout override
+    - host: dojo-portal.az-rnd.ephico2real.net
+      annotations:
+        haproxy.router.openshift.io/timeout: 60s
+      tls:
+        enabled: true
+        secretName: wildcard-az-rnd-tls-secret
+      # No service specified, will use default (release name)
+          
+    # Example with explicit path and service configuration
+    - host: api.az-rnd.ephico2real.net
+      tls:
+        enabled: true
+        secretName: wildcard-az-rnd-tls-secret
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: api-service
+            port: 8080
+        
+    # Example of multiple paths pointing to different services
+    - host: admin.az-rnd.ephico2real.net
+      tls:
+        enabled: true
+        secretName: wildcard-az-rnd-tls-secret
+      paths:
+        - path: /api
+          pathType: Prefix
+          service:
+            name: admin-api
+            port: 8080
+        - path: /
+          pathType: Prefix
+          service:
+            name: admin-frontend
+            port: 3000

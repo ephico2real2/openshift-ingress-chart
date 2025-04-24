@@ -1,0 +1,14 @@
+global:
+  service:
+    port: 8080
+  tls:
+    enabled: true
+    secretNamePrefix: "myapp"
+  
+ingress:
+  enabled: true
+  hosts:
+    - host: example.com
+    - host: api.example.com
+      service:
+        name: api-service

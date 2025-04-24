@@ -1,0 +1,13 @@
+global:
+  service:
+    port: 8080
+  tls:
+    enabled: true
+    secretNamePrefix: "super-long-secret-name-prefix-that-is-way-too-long"
+  
+ingress:
+  enabled: true
+  hosts:
+    - host: this-is-a-super-long-hostname-that-would-definitely-exceed-the-character-limit-for-kubernetes-resources.ephico2real.net
+      service:
+        name: super-long-service-name-that-would-definitely-exceed-the-character-limit

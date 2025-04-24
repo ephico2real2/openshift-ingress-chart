@@ -1,0 +1,86 @@
+{{- if .Values.ingress.enabled }}
+{{- $fullName := include "openshift-ingress.fullname" . -}}
+{{- $defaultPort := .Values.global.service.port -}}
+{{- range .Values.ingress.hosts }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-%s" $fullName (.host | replace "." "-") | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "openshift-ingress.labels" $ | nindent 4 }}
+    {{- with $.Values.global.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- if $.Values.global.ingressClassName }}
+    # OpenShift will use the ingressClassName field, but some tools may still need this annotation
+    # kubernetes.io/ingress.class: {{ $.Values.global.ingressClassName }}
+    {{- end }}
+    {{- /* First add global annotations */ -}}
+    {{- with $.Values.global.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- /* Then add OpenShift-specific global annotations */ -}}
+    {{- with $.Values.global.openshiftAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- /* Host-specific annotations override globals */ -}}
+    {{- with .annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- /* Add TLS annotation if TLS is enabled (host-specific setting takes precedence) */ -}}
+    {{- $hostTlsEnabled := false }}
+    {{- if hasKey . "tls" }}
+    {{- if hasKey .tls "enabled" }}
+    {{- $hostTlsEnabled = .tls.enabled }}
+    {{- end }}
+    {{- end }}
+    {{- $tlsEnabled := default $.Values.global.tls.enabled $hostTlsEnabled }}
+    {{- if $tlsEnabled }}
+    kubernetes.io/tls-acme: "true"
+    {{- end }}
+spec:
+  {{- if $.Values.global.ingressClassName }}
+  ingressClassName: {{ $.Values.global.ingressClassName }}
+  {{- end }}
+  {{- /* TLS configuration (host-specific setting takes precedence) */ -}}
+  {{- $hostTlsEnabled := false }}
+  {{- if hasKey . "tls" }}
+  {{- if hasKey .tls "enabled" }}
+  {{- $hostTlsEnabled = .tls.enabled }}
+  {{- end }}
+  {{- end }}
+  {{- $tlsEnabled := default $.Values.global.tls.enabled $hostTlsEnabled }}
+  {{- if $tlsEnabled }}
+  tls:
+    - hosts:
+        - {{ .host | quote }}
+      secretName: {{ include "openshift-ingress.tlsSecretName" (dict "host" .host "tls" (default (dict) .tls) "fullName" $fullName "global" $.Values.global) }}
+  {{- end }}
+  rules:
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- /* If no paths specified, use a default path based on global settings */ -}}
+          {{- if not .paths }}
+          - path: {{ $.Values.global.path | default "/" }}
+            pathType: {{ $.Values.global.pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ include "openshift-ingress.serviceName" (dict "pathConfig" (dict) "hostConfig" . "defaultName" $fullName) }}
+                port:
+                  number: {{ include "openshift-ingress.servicePort" (dict "pathConfig" (dict) "hostConfig" . "defaultPort" $defaultPort) }}
+          {{- else }}
+          {{- range .paths }}
+          - path: {{ .path | default $.Values.global.path | default "/" }}
+            pathType: {{ .pathType | default $.Values.global.pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ include "openshift-ingress.serviceName" (dict "pathConfig" . "hostConfig" $ "defaultName" $fullName) }}
+                port:
+                  number: {{ include "openshift-ingress.servicePort" (dict "pathConfig" . "hostConfig" $ "defaultPort" $defaultPort) }}
+          {{- end }}
+          {{- end }}
+{{- end }}
+{{- end }}
