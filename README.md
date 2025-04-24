@@ -73,7 +73,7 @@ ingress:
   # Multiple host configurations
   hosts:
     # Example of a vanity URL
-    - host: dojo-portal-rnd.pncint.net
+    - host: dojo-portal-rnd.ephico2real.com
       annotations:
         haproxy.router.openshift.io/rate-limit-connections: 'true'
         haproxy.router.openshift.io/rate-limit-connections.rate-http: '100'
@@ -88,7 +88,7 @@ ingress:
           # servicePort: 8080
 
     # Example of a wildcard subdomain
-    - host: dojo-portal.az-rnd.pncint.net
+    - host: dojo-portal.az-rnd.ephico2real.com
       annotations:
         haproxy.router.openshift.io/timeout: 60s
       tls:
@@ -99,7 +99,7 @@ ingress:
           pathType: Prefix
           
     # You can add more hosts as needed
-    - host: api.az-rnd.pncint.net
+    - host: api.az-rnd.ephico2real.com
       tls:
         enabled: true
         secretName: wildcard-az-rnd-tls-secret
