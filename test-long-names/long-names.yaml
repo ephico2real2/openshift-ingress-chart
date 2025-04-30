@@ -8,6 +8,6 @@ global:
 ingress:
   enabled: true
   hosts:
-    - host: this-is-a-super-long-hostname-that-would-definitely-exceed-the-character-limit-for-kubernetes-resources.ephico2real.net
+    - host: this-is-a-super-long-hostname-that-would-definitely-exceed-the-character-limit-for-kubernetes-resources.ephico2real.com
       service:
         name: super-long-service-name-that-would-definitely-exceed-the-character-limit

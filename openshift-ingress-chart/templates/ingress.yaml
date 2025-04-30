@@ -6,7 +6,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ printf "%s-%s" $fullName (.host | replace "." "-") | trunc 63 | trimSuffix "-" }}
+  name: {{ include "openshift-ingress.truncateWithHash" (printf "%s-%s" $fullName (.host | replace "." "-")) }}
   labels:
     {{- include "openshift-ingress.labels" $ | nindent 4 }}
     {{- with $.Values.global.labels }}
